@@ -9,7 +9,7 @@
  * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
  * @copyright © 2026 Ramesh N. Jangid (Sharma)
  * @license   MIT https://opensource.org/license/mit
- * @link      https://github.com/polygoncoin/Session-Handlers
+ * @link      https://github.com/shames11/Session-Handlers
  * @since     Class available since Release 1.0.0
  */
 
@@ -27,7 +27,7 @@ use Microservices\App\Http;
  * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
  * @copyright © 2026 Ramesh N. Jangid (Sharma)
  * @license   MIT https://opensource.org/license/mit
- * @link      https://github.com/polygoncoin/Session-Handlers
+ * @link      https://github.com/shames11/Session-Handlers
  * @since     Class available since Release 1.0.0
  */
 class SessionContainerHelper

@@ -111,9 +111,9 @@ Feel free to share them on [issues page](https://github.com/shames11/Microservic
 
 - **Ramesh N. Jangid (Sharma)**
 
-Github: [@polygoncoin](https://github.com/polygoncoin)
+Github: [@shames11](https://github.com/shames11)
 
 ## License
 
-Copyright © 2026 [Ramesh N. Jangid (Sharma)](https://github.com/polygoncoin).<br />
+Copyright © 2026 [Ramesh N. Jangid (Sharma)](https://github.com/shames11).<br />
 This project is [MIT](License) licensed.
