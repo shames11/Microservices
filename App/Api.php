@@ -1,0 +1,402 @@
+<?php
+
+/**
+ * Initiating API
+ * php version 8.3
+ *
+ * @category  API
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\App;
+
+use Microservices\App\Constant;
+use Microservices\App\Dropbox;
+use Microservices\App\Env;
+use Microservices\App\Hook;
+use Microservices\App\Http;
+use Microservices\App\HttpStatus;
+use Microservices\App\Reload;
+use Microservices\App\Supplement;
+
+/**
+ * Class to initialize api HTTP request
+ * php version 8.3
+ *
+ * @category  API
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class Api
+{
+	/**
+	 * Hook object
+	 * 
+	 * @var null|Hook
+	 */
+	private $hookObject = null;
+
+	/**
+	 * HTTP object
+	 * 
+	 * @var null|Http
+	 */
+	private $httpObject = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param Http $httpObject
+	 */
+	public function __construct(
+		Http &$httpObject
+	) {
+		$this->httpObject = &$httpObject;
+	}
+
+	/**
+	 * Initialize
+	 * 
+	 * @return bool
+	 */
+	public function init(): bool
+	{
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Process
+	 * 
+	 * @return mixed
+	 */
+	public function process(): mixed
+	{
+		// Execute Pre Route Hook
+		if (
+			isset($this->httpObject)
+			&& isset($this->httpObject->request)
+			&& isset($this->httpObject->request->routeParser)
+			&& isset($this->httpObject->request->routeParser->routeHook)
+			&& $this->httpObject->request->routeParser->routeHook !== Constant::$NULL
+			&& is_array(
+				value: $this->httpObject->request->routeParser->routeHook
+			)
+		) {
+			$preRouteHookArray = [];
+			foreach ($this->httpObject->request->routeParser->routeHook as $element => &$hookArray) {
+				if (isset($hookArray['__PRE-ROUTE-HOOK__'])) {
+					$preRouteHookConfig = $hookArray['__PRE-ROUTE-HOOK__'];
+					if (
+						count(
+							value: $preRouteHookConfig
+						) === 0
+					) {
+						continue;
+					}
+
+					$indexCount = count(
+						value: $preRouteHookConfig
+					);
+					for ($index = 0; $index < $indexCount; $index++) {
+						if (
+							!in_array(
+								needle: $preRouteHookConfig[$index],
+								haystack: $preRouteHookArray,
+								strict: Constant::$TRUE
+							)
+						) {
+							$preRouteHookArray[] = $preRouteHookConfig[$index];
+						}
+					}
+				}
+			}
+			if (
+				count(
+					value: $preRouteHookArray
+				) > 0
+			) {
+				if ($this->hookObject === Constant::$NULL) {
+					$this->hookObject = new Hook(
+						httpObject: $this->httpObject
+					);
+				}
+				$this->hookObject->triggerHook(
+					hookArray: $preRouteHookArray
+				);
+			}
+		}
+
+		// Load Payloads
+		if (
+			!in_array(
+				needle: $this->httpObject->request->routeParser->routeEndingReservedKeyword,
+				haystack: [
+					$this->httpObject->Env->EXPLAIN_KEYWORD,
+					$this->httpObject->Env->IMPORT_SAMPLE_KEYWORD
+				],
+				strict: Constant::$TRUE
+			)
+		) {
+			$this->httpObject->request->loadPayload();
+		}
+
+		$class = Constant::$NULL;
+		$supplementClass = Constant::$NULL;
+		if (
+			$this->httpObject->Env->ENABLE_CRON
+			&& $this->checkSupplement(
+				$this->httpObject->Env->CRON_KEYWORD
+			)
+		) {
+			$supplementClassFileName = ucfirst(
+				string: $this->httpObject->request->routeParser->routeElementArray[1]
+			);
+			$supplementClassFileLocation = Constant::$SUPPLEMENT_DIRECTORY
+					. DIRECTORY_SEPARATOR . 'Cron'
+					. DIRECTORY_SEPARATOR . $supplementClassFileName . '.php';
+
+			if (
+				file_exists(
+					filename: $supplementClassFileLocation
+				)
+			) {
+				$supplementClass = Constant::$SUPPLEMENT_NS . '\\Cron\\' . $supplementClassFileName;
+			}
+		} elseif (
+			$this->httpObject->Env->ENABLE_CUSTOM
+			&& $this->checkSupplement(
+				$this->httpObject->Env->CUSTOM_KEYWORD
+			)
+		) {
+			$supplementClassFileName = ucfirst(
+				string: $this->httpObject->request->routeParser->routeElementArray[1]
+			);
+			$supplementClassFileLocation = Constant::$SUPPLEMENT_DIRECTORY
+					. DIRECTORY_SEPARATOR . 'Custom'
+					. DIRECTORY_SEPARATOR . $supplementClassFileName . '.php';
+
+			if (
+				file_exists(
+					filename: $supplementClassFileLocation
+				)
+			) {
+				$supplementClass = Constant::$SUPPLEMENT_NS . '\\Custom\\' . $supplementClassFileName;
+			}
+		} elseif (
+			$this->httpObject->Env->ENABLE_UPLOAD
+			&& $this->checkSupplement(
+				$this->httpObject->Env->UPLOAD_KEYWORD
+			)
+		) {
+			$supplementClassFileName = ucfirst(
+				string: $this->httpObject->request->routeParser->routeElementArray[1]
+			);
+			$supplementClassFileLocation = Constant::$SUPPLEMENT_DIRECTORY
+					. DIRECTORY_SEPARATOR . 'Upload'
+					. DIRECTORY_SEPARATOR . $supplementClassFileName . '.php';
+
+			if (
+				file_exists(
+					filename: $supplementClassFileLocation
+				)
+			) {
+				$supplementClass = Constant::$SUPPLEMENT_NS . '\\Upload\\' . $supplementClassFileName;
+			}
+		} elseif (
+			$this->httpObject->Env->ENABLE_THIRDPARTY
+			&& $this->checkSupplement(
+				$this->httpObject->Env->THIRDPARTY_KEYWORD
+			)
+		) {
+			$supplementClassFileName = ucfirst(
+				string: $this->httpObject->request->routeParser->routeElementArray[1]
+			);
+			$supplementClassFileLocation = Constant::$SUPPLEMENT_DIRECTORY
+					. DIRECTORY_SEPARATOR . 'ThirdParty'
+					. DIRECTORY_SEPARATOR . $supplementClassFileName . '.php';
+
+			if (
+				file_exists(
+					filename: $supplementClassFileLocation
+				)
+			) {
+				$supplementClass = Constant::$SUPPLEMENT_NS . '\\ThirdParty\\' . $supplementClassFileName;
+			}
+		} else {
+			switch ($this->httpObject->httpReqData['server']['httpRequestMethod']) {
+				case Constant::$GET:
+				case Constant::$QUERY:
+					if (
+						$this->httpObject->Env->ENABLE_DROPBOX
+						&& $this->checkSupplement(
+							$this->httpObject->Env->DROPBOX_KEYWORD
+						)
+					) {
+						$classFileName = ucfirst(
+							string: $this->httpObject->request->routeParser->routeElementArray[1]
+						);
+						$classFileLocation = Constant::$SUPPLEMENT_DIRECTORY
+								. DIRECTORY_SEPARATOR . 'Dropbox'
+								. DIRECTORY_SEPARATOR . $classFileName . '.php';
+
+						if (
+							file_exists(
+								filename: $classFileLocation
+							)
+						) {
+							$class = Constant::$SUPPLEMENT_NS . '\\Dropbox\\' . $classFileName;
+						}
+					} elseif (
+						$this->httpObject->Env->ENABLE_ROUTES
+						&& $this->checkSupplement(
+							$this->httpObject->Env->ROUTES_KEYWORD
+						)
+					) {
+						$class = __NAMESPACE__ . '\\Route';
+					} elseif (
+						$this->httpObject->Env->ENABLE_RELOAD
+						&& $this->httpObject->httpReqData['get'][ROUTE_URL_PARAM] === '/' . $this->httpObject->Env->RELOAD_KEYWORD
+					) {
+						$class = __NAMESPACE__ . '\\Reload';
+					} else {
+						$class = __NAMESPACE__ . '\\Read';
+					}
+					break;
+				case Constant::$POST:
+				case Constant::$PUT:
+				case Constant::$PATCH:
+				case Constant::$DELETE:
+					$class = __NAMESPACE__ . '\\Write';
+					break;
+			}
+		}
+
+		if ($supplementClass !== Constant::$NULL) {
+			$supplementObject = new Supplement(
+				httpObject: $this->httpObject
+			);
+			if (
+				$supplementObject->init(
+					supplementClass: $supplementClass
+				)
+			) {
+				$return = $supplementObject->process();
+			}
+		} elseif ($class !== Constant::$NULL) {
+			$api = new $class(
+				httpObject: $this->httpObject
+			);
+			if ($api->init()) {
+				$return = $api->process();
+			}
+		} else {
+			throw new \Exception(
+				message: 'API class file not found',
+				code: HttpStatus::$NotFound
+			);
+		}
+
+		// Execute Post Route Hook
+		if (
+			isset($this->httpObject)
+			&& isset($this->httpObject->request)
+			&& isset($this->httpObject->request->routeParser)
+			&& isset($this->httpObject->request->routeParser->routeHook)
+			&& $this->httpObject->request->routeParser->routeHook !== Constant::$NULL
+			&& is_array(
+				value: $this->httpObject->request->routeParser->routeHook
+			)
+		) {
+			$postRouteHookArray = [];
+			foreach ($this->httpObject->request->routeParser->routeHook as $element => &$hookArray) {
+				if (isset($hookArray['__POST-ROUTE-HOOK__'])) {
+					$postRouteHookConfig = $hookArray['__POST-ROUTE-HOOK__'];
+					if (
+						count(
+							value: $postRouteHookConfig
+						) === 0
+					) {
+						continue;
+					}
+
+					$indexCount = count(
+						value: $postRouteHookConfig
+					);
+					for ($index = 0; $index < $indexCount; $index++) {
+						if (
+							!in_array(
+								needle: $postRouteHookConfig[$index],
+								haystack: $postRouteHookArray,
+								strict: Constant::$TRUE
+							)
+						) {
+							$postRouteHookArray[] = $postRouteHookConfig[$index];
+						}
+					}
+				}
+			}
+			if (
+				count(
+					value: $postRouteHookArray
+				) > 0
+			) {
+				if ($this->hookObject === Constant::$NULL) {
+					$this->hookObject = new Hook(
+						httpObject: $this->httpObject
+					);
+				}
+				$this->hookObject->triggerHook(
+					hookArray: $postRouteHookArray
+				);
+			}
+		}
+
+		if (
+			is_array(
+				value: $return
+			)
+			&& count(
+				value: $return
+			) === 3
+		) {
+			return $return;
+		}
+
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Process before collecting Payload
+	 * 
+	 * @param string $supplementMode
+	 * 
+	 * @return bool
+	 */
+	private function checkSupplement(
+		$supplementMode
+	): bool {
+		return (
+			$this->httpObject->request->routeParser->routeStartingWithReservedKeywordFlag
+			&& $this->httpObject->request->routeParser->routeStartingReservedKeyword === $supplementMode
+		);
+	}
+
+	/**
+	 * Execute once done with api process function
+	 * 
+	 * @return bool
+	 */
+	private function processAfterPayload(): bool
+	{
+		return Constant::$TRUE;
+	}
+}

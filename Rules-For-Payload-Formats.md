@@ -1,0 +1,188 @@
+# HTTP request Payload
+
+## GET request
+
+- [http://localhost/Microservices/www/public\_html/index.php?route=/reload.json](http://localhost/Microservices/www/public_html/index.php?route=/reload.json)
+
+- [http://localhost/Microservices/www/public\_html/index.php?route=/tableName/1.json](http://localhost/Microservices/www/public_html/index.php?route=/tableName/1.json)
+
+One can clean the URL by making the required changes in the web server .conf file.
+
+## Pagination in GET request
+
+Requires **__COUNT-SQL__** Sql in the configuration for GET request
+```ini
+defaultPerpage=10
+MAX_PER_PAGE_COUNT=1000
+```
+
+- [http://localhost/Microservices/www/public\_html/index.php?route=/tableName.json?page=1](http://localhost/Microservices/www/public_html/index.php?route=/tableName.json?page=1)
+- [http://localhost/Microservices/www/public\_html/index.php?route=/tableName/1.json?page=1&perpage=25](http://localhost/Microservices/www/public_html/index.php?route=/tableName/1.json?page=1&perpage=25)
+- [http://localhost/Microservices/www/public\_html/index.php?route=/tableName.json?page=1&perpage=25&orderBy={"field1":"ASC","field2":"DESC"}](http://localhost/Microservices/www/public_html/index.php?route=/tableName.json?page=1&perpage=25&orderBy={"field1":"ASC","field2":"DESC"})
+
+>One need to urlencode orderBy value
+
+## POST, PUT, PATCH, and DELETE request
+
+- Single
+
+```javascript
+var payload = {
+    "key1": "value1",
+    "key2": "value2",
+    ...
+};
+```
+
+- Multiple
+
+```javascript
+var payload = [
+    {
+        "key1": "value1",
+        "key2": "value2",
+        ...
+    },
+    {
+        "key1": "value1",
+        "key2": "value2",
+        ...
+    },
+    ...
+];
+```
+
+## HttpRequest Variables
+
+- **$activeData\['customerUserData'\]** Session Data.
+This remains same for every request and contains key's like id, group\_id, customer\_id
+
+- **$activeData\['routeParamArray'\]** Data passed in URI.
+Suppose our configured route is **/{table:string}/{id:int}** and we make an HTTP request for **/tableName/1** then $activeData\['routeParamArray'\] will hold these dynamic values as below.
+
+- **$activeData\['payload'\]** request data.
+For **GET** method, the **$\_GET** is the payload.
+
+- **$activeData\['__INSERT-ID__'\]** Insert IDs Data as per configuration.
+>For **POST/PUT/PATCH/DELETE** we perform both INSERT as well as UPDATE operation. The insertID contains the insert IDs of the executed INSERT queries.
+
+- **$activeData\['sqlResults'\]** Sql Thread data.
+>For **GET** method, one can use previous query results if configured to use Sql Thread.
+
+## Sql Thread Configs
+
+- Config/Sql/CustomerDB/GET/Category.php
+>In this file one can confirm how previous select data is used recursively in subQuery select as indicated by FollowSqlConfigThread flag.
+
+```PHP
+[
+    'column' => 'parent_id',
+    'activeDataKey' => 'sqlResults',
+    'activeDataKeySubKey' => 'return:id'
+],
+```
+
+- Config/Sql/CustomerDB/POST/Category.php .Here a request can handle the Sql Thread for write operations.
+
+```PHP
+return [
+    '__SQL__' => 'INSERT INTO `category` SET __SET__',
+    '__SET__' => [
+        'name' => ['payload', 'name'],
+        'parent_id' => ['custom', 0],
+    ],
+    '__INSERT-ID__' => 'category:id',
+    '__SUB-CONFIG__' => [
+        'module1' => [
+            '__SQL__' => 'INSERT INTO `category` SET __SET__',
+            '__SET__' => [
+                'name' => ['payload', 'subname'],
+                'parent_id' => ['__INSERT-ID__', 'category:id'],
+            ],
+            '__INSERT-ID__' => 'sub:id',
+        ]
+    ],
+    '__FOLLOW-SQL_CONFIG-THREAD__' => Constant::$TRUE
+];
+```
+
+### Sql Thread request
+
+- request - 1: Single object.
+
+```javascript
+var payload = {
+    "name":"name",
+    "module1": {
+        "subname":"subname-value",
+    }
+}
+```
+
+- request - 2: Array of module1
+
+```javascript
+var payload = {
+    "name":"name",
+    "module1":
+    [
+        {
+            "subname":"subname1",
+        },
+        {
+            "subname":"subname2",
+        },
+        ...
+    ]
+}
+```
+
+- request - 3: Array of payload and arrays of module1
+
+```javascript
+var payload = [
+    {
+        "name":"name1",
+        "module1":
+        [
+            {
+                "subname":"subname1",
+            },
+            {
+                "subname":"subname2",
+            },
+            ...
+        ]
+    },
+    {
+        "name":"name2",
+        "module1":
+        [
+            {
+                "subname":"subname21",
+            },
+            {
+                "subname":"subname22",
+            },
+            ...
+        ]
+    },
+    ...
+]
+```
+
+## Contributing
+
+Issues and feature request are welcome.<br />
+Feel free to share them on [issues page](https://github.com/polygoncoin/Microservices/issues)
+
+## Author
+
+- **Ramesh N. Jangid (Sharma)**
+
+Github: [@polygoncoin](https://github.com/polygoncoin)
+
+## License
+
+Copyright © 2026 [Ramesh N. Jangid (Sharma)](https://github.com/polygoncoin).<br />
+This project is [MIT](License) licensed.

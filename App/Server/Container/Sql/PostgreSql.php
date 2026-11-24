@@ -1,0 +1,420 @@
+<?php
+
+/**
+ * Sql Database
+ * php version 8.3
+ *
+ * @category  Sql
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\App\Server\Container\Sql;
+
+use Microservices\App\Constant;
+use Microservices\App\HttpStatus;
+use Microservices\App\Server\Container\Sql\SqlInterface;
+
+/**
+ * PostgreSql Database
+ * php version 8.3
+ *
+ * @category  PostgreSql
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class PostgreSql implements SqlInterface
+{
+	/**
+	 * Database Server Hostname
+	 * 
+	 * @var null|string
+	 */
+	private $dbServerHost = null;
+
+	/**
+	 * Database Server Port
+	 * 
+	 * @var null|string
+	 */
+	private $dbServerPort = null;
+
+	/**
+	 * Database Server Username
+	 * 
+	 * @var null|string
+	 */
+	private $dbServerUser = null;
+
+	/**
+	 * Database Server Password
+	 * 
+	 * @var null|string
+	 */
+	private $dbServerPassword = null;
+
+	/**
+	 * Database Server DB
+	 * 
+	 * @var null|string
+	 */
+	public $dbServerDb = null;
+
+	/**
+	 * Database Server Object
+	 * 
+	 * @var null|\PDO
+	 */
+	private $pgsqlObject = null;
+
+	/**
+	 * Executed query statement
+	 * 
+	 * @var null|\PDOStatement
+	 */
+	private $stmt = null;
+
+	/**
+	 * Executed query statement
+	 * 
+	 * @var \PDOStatement[]
+	 */
+	private $stmtArray = [];
+
+	/**
+	 * Transaction started flag
+	 * 
+	 * @var bool
+	 */
+	public $beganTransaction = false;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param string      $dbServerHost Database Server Hostname
+	 * @param int         $dbServerPort     Database Server Port
+	 * @param string      $dbServerUser Database Server Username
+	 * @param string      $dbServerPassword Database Server Password
+	 * @param null|string $dbServerDb Database Server Database
+	 */
+	public function __construct(
+		$dbServerHost,
+		$dbServerPort,
+		$dbServerUser,
+		$dbServerPassword,
+		$dbServerDb
+	) {
+		$this->dbServerHost = $dbServerHost;
+		$this->dbServerPort = $dbServerPort;
+		$this->dbServerUser = $dbServerUser;
+		$this->dbServerPassword = $dbServerPassword;
+		$this->dbServerDb = $dbServerDb;
+	}
+
+	/**
+	 * Connect Database
+	 * 
+	 * @return void
+	 */
+	public function connect(): void
+	{
+		if ($this->pgsqlObject !== Constant::$NULL) {
+			return;
+		}
+
+		try {
+			$pgsqlObject = new PDO(
+				$dsn,
+				$user,
+				$dbServerPassword
+			);
+			$this->pgsqlObject = new \PDO(
+				dsn: "pgsql:host={$this->dbServerHost};port={$this->dbServerPort};dbname={$this->dbServerDb}",
+				username: $this->dbServerUser,
+				password: $this->dbServerPassword,
+			);
+			$pgsqlObject->setAttribute(
+				\PDO::ATTR_ERRMODE,
+				\PDO::ERRMODE_EXCEPTION
+			);
+		} catch (\PDOException $e) {
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+	}
+
+	/**
+	 * Use Database
+	 * 
+	 * @return void
+	 */
+	public function useDatabase(): void
+	{
+		$this->connect();
+	}
+
+	/**
+	 * Begin transaction
+	 * 
+	 * @return void
+	 */
+	public function begin(): void
+	{
+		$this->connect();
+
+		$this->beganTransaction = Constant::$TRUE;
+		try {
+			$this->pgsqlObject->beginTransaction();
+		} catch (\PDOException $e) {
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+	}
+
+	/**
+	 * Commit transaction
+	 * 
+	 * @return void
+	 */
+	public function commit(): void
+	{
+		try {
+			if ($this->beganTransaction) {
+				$this->beganTransaction = Constant::$FALSE;
+				$this->pgsqlObject->commit();
+			}
+		} catch (\PDOException $e) {
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+	}
+
+	/**
+	 * Rollback transaction
+	 * 
+	 * @return void
+	 */
+	public function rollBack(): void
+	{
+		try {
+			if ($this->beganTransaction) {
+				$this->beganTransaction = Constant::$FALSE;
+				$this->pgsqlObject->rollBack();
+			}
+		} catch (\PDOException $e) {
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+	}
+
+	/**
+	 * Affected record count
+	 * 
+	 * @return bool|int
+	 */
+	public function affectedRecordCount(): bool|int
+	{
+		try {
+			if ($this->stmt) {
+				return $this->stmt->rowCount();
+			}
+		} catch (\PDOException $e) {
+			if ($this->beganTransaction) {
+				$this->rollBack();
+			}
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+		return Constant::$FALSE;
+	}
+
+	/**
+	 * Last insert id
+	 * 
+	 * @return bool|int
+	 */
+	public function lastInsertId(): bool|int
+	{
+		try {
+			if ($this->stmt !== Constant::$FALSE) {
+				return $this->stmt->fetchColumn();
+			}
+		} catch (\PDOException $e) {
+			if ($this->beganTransaction) {
+				$this->rollBack();
+			}
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+		return Constant::$FALSE;
+	}
+
+	/**
+	 * Execute query
+	 * 
+	 * @param string $sql        Sql query
+	 * @param array  $paramArray Sql query params
+	 * @param bool   $pushPop    Push Pop result set stmt
+	 * 
+	 * @return void
+	 */
+	public function execQuery(
+		$sql,
+		$paramArray = [],
+		$pushPop = false
+	): void {
+		$this->connect();
+
+		try {
+			if (
+				$pushPop
+				&& $this->stmt
+			) {
+				array_push(
+					$this->stmtArray,
+					$this->stmt
+				);
+			}
+			$this->stmt = $this->pgsqlObject->prepare(
+				query: $sql,
+				options: [\PDO::ATTR_CURSOR => \PDO::CURSOR_FWDONLY]
+			);
+			if ($this->stmt) {
+				$this->stmt->execute(
+					paramArray: $paramArray
+				);
+			}
+		} catch (\PDOException $e) {
+			if ($this->beganTransaction) {
+				$this->rollBack();
+			}
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+	}
+
+	/**
+	 * Fetch record
+	 * 
+	 * @return mixed
+	 */
+	public function fetch(): mixed
+	{
+		try {
+			if ($this->stmt) {
+				return $this->stmt->fetch(
+					mode: \PDO::FETCH_ASSOC
+				);
+			}
+		} catch (\PDOException $e) {
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+		return Constant::$FALSE;
+	}
+
+	/**
+	 * Fetch all rows
+	 * 
+	 * @return array|bool
+	 */
+	public function fetchAll(): array|bool
+	{
+		try {
+			if ($this->stmt) {
+				return $this->stmt->fetchAll(
+					mode: \PDO::FETCH_ASSOC
+				);
+			}
+		} catch (\PDOException $e) {
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+		return Constant::$FALSE;
+	}
+
+	/**
+	 * Close statement cursor
+	 * 
+	 * @param bool $pushPop Push Pop result set stmt
+	 * 
+	 * @return void
+	 */
+	public function closeCursor(
+		$pushPop = false
+	): void {
+		try {
+			if ($this->stmt) {
+				$this->stmt->closeCursor();
+				if (
+					$pushPop
+					&& count(
+						value: $this->stmtArray
+					)
+				) {
+					$this->stmt = array_pop(
+						array: $this->stmtArray
+					);
+				}
+			}
+		} catch (\PDOException $e) {
+			if ((int)$this->pgsqlObject->errorCode()) {
+				$this->manageException(
+					e: $e
+				);
+			}
+		}
+	}
+
+	/**
+	 * Log error
+	 * 
+	 * @param \Exception $e Exception object
+	 * 
+	 * @return never
+	 * @throws \Exception
+	 */
+	private function manageException(
+		$e
+	): never {
+		throw new \Exception(
+			message: $e->getMessage(),
+			code: HttpStatus::$InternalServerError
+		);
+	}
+}

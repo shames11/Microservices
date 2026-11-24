@@ -1,0 +1,46 @@
+<?php
+namespace Microservices\www\Config\Common\Private\Sql\DataModification\Common;
+
+/**
+ * API Query config
+ * php version 8.3
+ *
+ * @category  API_Query_Config
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+use Microservices\App\Constant;
+use Microservices\App\DatabaseServerDataType;
+use Microservices\App\Env;
+use Microservices\DatabaseTable;
+
+return [
+	'__PAYLOAD__' => [
+		[
+			'column' => 'username',
+			'activeDataKey' => 'payload',
+			'activeDataKeySubKey' => 'username'
+		],
+		[
+			'column' => 'password',
+			'activeDataKey' => 'payload',
+			'activeDataKeySubKey' => 'password'
+		],
+	],
+	// '__VALIDATE__' => [
+	//     [
+	//         'function' => 'primaryKeyExist',
+	//         'functionArgs' => [
+	//             'table' => ['custom', 'address'],
+	//             'primary' => ['custom', DatabaseTable::$addressPrimaryKey],
+	//             'id' => ['routeParamArray', 'id']
+	//         ],
+	//         'errorMessage' => 'Invalid address id'
+	//     ],
+	// ]
+];

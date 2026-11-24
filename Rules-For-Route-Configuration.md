@@ -1,0 +1,165 @@
+# Route Configuration Rules
+
+## Available configuration syntax explained
+
+- For configuring route **/tableName/parts** GET method
+```PHP
+return [
+	'tableName' => [
+		'parts' => [
+			'__FILE__' => 'Sql file location'
+		]
+	]
+];
+```
+
+- For configuring route **/tableName/{id}** where id is dynamic **integer** value to be collected.
+```PHP
+return [
+	'tableName' => [
+		'{id:int}' => [
+			'dataType' => DatabaseServerDataType::$PrimaryKey,
+			'__FILE__' => 'Sql file location'
+		]
+	]
+];
+```
+
+- Same dynamic variable but with a different data type, for e.g. **{id}** will be treated differently for **string** and **integer** values to be collected.
+
+```PHP
+return [
+	'tableName' => [
+		'{id:int}' => [
+			'dataType' => DatabaseServerDataType::$PrimaryKey,
+			'__FILE__' => 'Sql file location for integer data type'
+		],
+		'{id:string}' => [
+			'dataType' => DatabaseServerDataType::$Default,
+			'__FILE__' => 'Sql file location for string data type'
+		]
+	]
+];
+```
+
+- To restrict dynamic values to a certain set of values. One can do the same by defining its data type.
+
+```PHP
+return [
+	'{tableName:string}' => [
+		'dataType' => DatabaseServerDataType::$Tables,
+		'__FILE__' => 'Sql file location'
+		'{id:int}' => [
+			'__FILE__' => 'Sql file location'
+		]
+	]
+];
+```
+
+## Hook
+
+```PHP
+return [
+	'{tableName:string}' => [
+		'dataType' => DatabaseServerDataType::$Tables,
+		'__FILE__' => 'Sql file location',
+		'__PRE-ROUTE-HOOK__' => [// These will apply recursively
+			'Hook_1',
+			'...'
+		],
+		'__POST-ROUTE-HOOK__' => [// These will apply recursively
+			'Hook_1',
+			'...'
+		]
+		'{id:int}' => [
+			'dataType' => DatabaseServerDataType::$PrimaryKey,
+			'__FILE__' => 'Sql file location',
+			'__PRE-ROUTE-HOOK__' => [], // For noi hooks
+			'__POST-ROUTE-HOOK__' => [] // For noi hooks
+		],
+
+		// Input Data Representation
+		'__INPUT-REPRESENTATION__' => 'XML' // JSON/XML - Defaults to JSON
+	]
+];
+```
+
+- This '{id:int|!0}' means id is integer but can't be zero.
+
+## Data representation
+
+- The input and output format depencds on the extension applied during accessing.
+
+```ini
+route=/category/1.json  ; for JSON 
+route=/category/1.xml   ; for XML
+route=/category/1.xslt  ; for parsing XSLT (ServindFile/XSLT folder)
+route=/category/1.html  ; for HTML (ServindFile/HTML folder)
+route=/category/1.php   ; for PHP (ServindFile/PHP folder)
+```
+
+## Defining Custom DataTypes
+
+```PHP
+public static $PrimaryKey = [
+
+// Required param
+	// PHP data type (bool, int, float, string)
+	'dataType' => 'int',
+
+// Optional params
+	// Value can be null
+	'canBeNull' => Constant::$FALSE,
+	// Minimum value (int)
+	'minValue' => 1,
+	// Maximum value (int)
+	'maxValue' => Constant::$FALSE,
+	// Minimum length (string)
+	'minLength' => Constant::$FALSE,
+	// Maximum length (string)
+	'maxLength' => Constant::$FALSE,
+	// Any one value from the Array
+	'enumValues' => Constant::$FALSE,
+	// Values belonging to this Array
+	'setValues' => Constant::$FALSE,
+
+	// Values should pass this regex before use
+	'regex' => Constant::$FALSE
+];
+```
+
+## Special Route
+
+- Appending route with **/explain** returns the payload information that should be supplied; both required and optional with desired format.
+
+Examples:
+
+- route=/registration/explain.json (returns the payload information)
+- route=/registration/import.csv (import CSV)
+- route=/registration/import-sample.csv (sample CSV download for respective HTTP Method)
+
+One need to enable same in .env file as below
+
+```ini
+; Keyword to append with in route with slash.
+; Explain Route & its Payload
+EXPLAIN_KEYWORD='explain'    ; to append "/explain" at the end of route
+IMPORT_CSV_KEYWORD='import'  ; to append "/import" at the end of route
+IMPORT_SAMPLE_KEYWORD='import-sample'
+```
+
+## Contributing
+
+Issues and feature request are welcome.<br />
+Feel free to share them on [issues page](https://github.com/polygoncoin/Microservices/issues)
+
+## Author
+
+- **Ramesh N. Jangid (Sharma)**
+
+Github: [@polygoncoin](https://github.com/polygoncoin)
+
+## License
+
+Copyright © 2026 [Ramesh N. Jangid (Sharma)](https://github.com/polygoncoin).<br />
+This project is [MIT](License) licensed.

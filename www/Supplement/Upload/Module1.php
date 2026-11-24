@@ -1,0 +1,93 @@
+<?php
+
+/**
+ * UploadAPI
+ * php version 8.3
+ *
+ * @category  UploadAPI
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\www\Supplement\Upload;
+
+use Microservices\App\Constant;
+use Microservices\App\Http;
+use Microservices\www\Supplement\Upload\UploadInterface;
+use Microservices\www\Supplement\Upload\UploadTrait;
+
+/**
+ * UploadAPI Example
+ * php version 8.3
+ *
+ * @category  UploadAPI_Example
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class Module1 implements UploadInterface
+{
+	use UploadTrait;
+
+	/**
+	 * HTTP object
+	 * 
+	 * @var null|Http
+	 */
+	private $httpObject = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param Http $httpObject
+	 */
+	public function __construct(
+		Http &$httpObject
+	) {
+		$this->httpObject = &$httpObject;
+	}
+
+	/**
+	 * Initialize
+	 * 
+	 * @return bool
+	 */
+	public function init(): bool
+	{
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Process
+	 * 
+	 * @return mixed
+	 */
+	public function process(): mixed
+	{
+		$absFilePath = $this->getLocation();
+		$this->saveFile(
+			absFilePath: $absFilePath
+		);
+
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Function to get filename with location depending upon $sess
+	 * 
+	 * @return string
+	 */
+	private function getLocation(): string
+	{
+		return Constant::$DROPBOX_PRIVATE_DIRECTORY
+			. DIRECTORY_SEPARATOR . $this->httpObject->httpReqData['active']['customerId']
+			. DIRECTORY_SEPARATOR . 'test.png';
+	}
+}

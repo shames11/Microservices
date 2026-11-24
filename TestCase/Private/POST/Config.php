@@ -1,0 +1,30 @@
+<?php
+
+/**
+ * Test Case
+ * php version 8.3
+ *
+ * @category  Test Case
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\TestCase\Private\POST;
+
+use Microservices\App\Constant;
+use Microservices\App\Env;
+use Microservices\App\Web;
+
+if ($proceed) {
+	return Web::trigger(
+		homeURL: $homeURL,
+		httpRequestMethod: Constant::$POST,
+		route: '/custom/SupplementTest/explain.json',
+		header: $privateHeaderArray,
+		payload: ''
+	);
+}

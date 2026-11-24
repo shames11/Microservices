@@ -1,0 +1,60 @@
+<?php
+namespace Microservices\www\Config\Common\Private\Sql\DataModification\PATCH;
+
+/**
+ * API Query config
+ * php version 8.3
+ *
+ * @category  API_Query_Config
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+use Microservices\App\Constant;
+use Microservices\App\DatabaseServerDataType;
+use Microservices\App\Env;
+use Microservices\DatabaseTable;
+
+return [
+	'__SQL__' => "UPDATE `{$this->httpObject->httpReqData['active']['customerData']['customer_user_table']}` SET __SET__ WHERE __WHERE__",
+	'__VALIDATE__' => [
+		[
+			'function' => 'primaryKeyExist',
+			'functionArgs' => [
+				'table' => ['custom', $this->httpObject->httpReqData['active']['customerData']['customer_user_table']],
+				'primary' => ['custom', DatabaseTable::$customerUserPrimaryKey],
+				'id' => ['routeParamArray', 'id']
+			],
+			'errorMessage' => 'Invalid registration id'
+		],
+	],
+	'__SET__' => [
+		[
+			'column' => 'firstname',
+			'activeDataKey' => 'payload',
+			'activeDataKeySubKey' => 'firstname'
+		],
+		[
+			'column' => 'lastname',
+			'activeDataKey' => 'payload',
+			'activeDataKeySubKey' => 'lastname'
+		],
+		[
+			'column' => 'email',
+			'activeDataKey' => 'payload',
+			'activeDataKeySubKey' => 'email'
+		],
+	],
+	'__WHERE__' => [
+		[
+			'column' => DatabaseTable::$customerUserPrimaryKey,
+			'activeDataKey' => 'routeParamArray',
+			'activeDataKeySubKey' => 'id',
+			'dataType' => DatabaseServerDataType::$PrimaryKey
+		]
+	],
+];

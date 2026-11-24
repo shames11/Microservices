@@ -1,0 +1,671 @@
+<?php
+
+/**
+ * RouteParser
+ * php version 8.3
+ *
+ * @category  RouteParser
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\App;
+
+use Microservices\App\CommonFunction;
+use Microservices\App\Constant;
+use Microservices\App\DatabaseServerDataType;
+use Microservices\App\Env;
+use Microservices\App\Http;
+use Microservices\App\HttpStatus;
+
+/**
+ * RouteParser
+ * php version 8.3
+ *
+ * @category  RouteParser
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class RouteParser
+{
+	/**
+	 * Array containing detail of received route elements
+	 * 
+	 * @var string[]
+	 */
+	public $routeElementArray = [];
+
+	/**
+	 * Route file location
+	 * 
+	 * @var null|string
+	 */
+	public $routeFileLocation = null;
+
+	/**
+	 * Pre / Post hooks defined in respective Route file
+	 * 
+	 * @var string
+	 */
+	public $routeHook = null;
+
+	/**
+	 * Is Starting With Reserved Route Keyword Flag
+	 * 
+	 * @var bool
+	 */
+	public $routeStartingWithReservedKeywordFlag = false;
+
+	/**
+	 * Route Starting Reserved Keyword
+	 * 
+	 * @var string
+	 */
+	public $routeStartingReservedKeyword = '';
+
+	/**
+	 * Is Ending With Reserved Route Keyword Flag
+	 * 
+	 * @var bool
+	 */
+	public $routeEndingWithReservedKeywordFlag = false;
+
+	/**
+	 * Route Ending Reserved Keyword
+	 * 
+	 * @var string
+	 */
+	public $routeEndingReservedKeyword = '';
+
+	/**
+	 * Raw route / Configured Path
+	 * 
+	 * @var string
+	 */
+	public $configuredRoute = '';
+
+	/**
+	 * HTTP object
+	 * 
+	 * @var null|Http
+	 */
+	public $httpObject = null;
+
+	/**
+	 * Reserved Routes Prefix
+	 * 
+	 * @var null|array
+	 */
+	public $reservedRoutesPrefix = null;
+
+	/**
+	 * Reserved Routes CIDR
+	 * 
+	 * @var null|array
+	 */
+	public $reservedRoutesCidrString = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param Http $httpObject
+	 */
+	public function __construct(
+		Http &$httpObject
+	) {
+		$this->httpObject = &$httpObject;
+	}
+
+	/**
+	 * Parse route as per method
+	 * 
+	 * @param string $routeFileLocation Route file
+	 * 
+	 * @return void
+	 * @throws \Exception
+	 */
+	public function parseRoute(
+		$routeFileLocation = null
+	): void {
+		$this->routeElementArray = explode(
+			separator: '/',
+			string: trim(
+				string: $this->httpObject->httpReqData['get'][ROUTE_URL_PARAM],
+				characters: '/'
+			)
+		);
+
+		if (
+			isset($this->routeElementArray[1])
+			&& $this->routeElementArray[1] === $this->httpObject->Env->DROPBOX_KEYWORD
+		) {
+			if (
+				$this->httpObject->request->isPrivateWebRequest
+				|| $this->httpObject->request->isPrivateApiRequest
+			) {
+				CommonFunction::checkCidr(
+					ip: $this->httpObject->httpReqData['server']['httpRequestIp'],
+					cidrString: $this->httpObject->httpReqData['active']['customerData']['customer_dropbox_cidr']
+				);
+			}
+			$this->routeStartingWithReservedKeywordFlag = Constant::$TRUE;
+			$this->routeStartingReservedKeyword = $this->httpObject->Env->DROPBOX_KEYWORD;
+
+			$this->configuredRoute = '/' . implode(
+				separator: '/',
+				array: $this->routeElementArray
+			);
+
+			return;
+		}
+		if ($this->routeElementArray[0] === $this->httpObject->Env->RELOAD_KEYWORD) {
+			CommonFunction::checkCidr(
+				ip: $this->httpObject->httpReqData['server']['httpRequestIp'],
+				cidrString: $this->httpObject->httpReqData['active']['customerData']['customer_reload_cidr']
+			);
+
+			$this->routeStartingWithReservedKeywordFlag = Constant::$TRUE;
+			$this->routeStartingReservedKeyword = $this->httpObject->Env->RELOAD_KEYWORD;
+
+			$this->configuredRoute = '/' . implode(
+				separator: '/',
+				array: $this->routeElementArray
+			);
+
+			return;
+		}
+
+		if ($this->routeElementArray[0] === $this->httpObject->Env->ROUTES_KEYWORD) {
+			CommonFunction::checkCidr(
+				ip: $this->httpObject->httpReqData['server']['httpRequestIp'],
+				cidrString: $this->httpObject->httpReqData['active']['customerData']['customer_routes_cidr']
+			);
+
+			$this->routeStartingWithReservedKeywordFlag = Constant::$TRUE;
+			$this->routeStartingReservedKeyword = $this->httpObject->Env->ROUTES_KEYWORD;
+
+			$this->configuredRoute = '/' . implode(
+				separator: '/',
+				array: $this->routeElementArray
+			);
+
+			return;
+		}
+
+		$routeLastElementPos = count(
+			value: $this->routeElementArray
+		) - 1;
+		// if ($this->routeElementArray[$routeLastElementPos] === $this->httpObject->Env->IMPORT_SAMPLE_KEYWORD) {
+		//     if (isset($this->httpObject->httpReqData['server']['httpRequestMethod'])) {
+		//         $this->httpObject->httpReqData['server']['httpRequestMethod'] = $this->httpObject->httpReqData['server']['httpRequestMethod'];
+		//     }
+		// }
+
+		if ($routeFileLocation === Constant::$NULL) {
+			$routeFileLocation = $this->httpObject->httpReqData['active']['routeDir']
+				. DIRECTORY_SEPARATOR . $this->httpObject->httpReqData['server']['httpRequestMethod'] . 'routes.php';
+		}
+
+		if (
+			!file_exists(
+				filename: $routeFileLocation
+			)
+		) {
+			throw new \Exception(
+				message: 'Route file missing',
+				code: HttpStatus::$InternalServerError
+			);
+		}
+		$Constant = __NAMESPACE__ . '\Constant';
+		$Env = __NAMESPACE__ . '\Env';
+
+		$this->routeFileLocation = $routeFileLocation;
+		$routeConfig = include $routeFileLocation;
+
+		$configuredRoute = [];
+		$indexCount = count(
+			value: $this->routeElementArray
+		);
+		for ($index = 0; $index < $indexCount; $index++) {
+			$element = $this->routeElementArray[$index];
+			if ($element === '') {
+				continue;
+			}
+			if ($index === 0) { // Route starting with reserved keyword
+				$this->isStartingWithReservedRouteKeyword(
+					routeStartingKeyword: $element
+				);
+			}
+
+			if (isset($routeConfig[$element])) { // Route element is configured
+				if (isset($routeConfig[$element]['__PRE-ROUTE-HOOK__'])) {
+					$this->routeHook[$element]['__PRE-ROUTE-HOOK__'] = $routeConfig[$element]['__PRE-ROUTE-HOOK__'];
+				}
+				if (isset($routeConfig[$element]['__POST-ROUTE-HOOK__'])) {
+					$this->routeHook[$element]['__POST-ROUTE-HOOK__'] = $routeConfig[$element]['__POST-ROUTE-HOOK__'];
+				}
+				$configuredRoute[] = $element;
+				$routeConfig = &$routeConfig[$element];
+				$this->checkPresenceOfDynamicString(
+					element: $element
+				);
+				continue;
+			} elseif ( // Route ending with reserved keyword
+				$index === $routeLastElementPos
+				&& $this->isEndingWithReservedRouteKeyword(
+					routeEndingKeyword: $element
+				)
+			) {
+				break;
+			} else { // Route element is a variable/dynamic input
+				if (
+					(
+						isset($routeConfig['__FILE__'])
+						&& count(
+							value: $routeConfig
+						) > 2
+					)
+					|| (
+						!isset($routeConfig['__FILE__'])
+						&& count(
+							value: $routeConfig
+						) > 0
+					)
+				) {
+					[
+						$foundIntRoute,
+						$foundIntParamName,
+						$foundStringRoute,
+						$foundStringParamName
+					] = $this->findRouteAndParamName(
+						routeConfig: $routeConfig,
+						element: $element
+					);
+					if ($foundIntRoute) {
+						$configuredRoute[] = $foundIntRoute;
+						$this->httpObject->httpReqData['active']['routeParamArray'][$foundIntParamName] =
+							(int)$element;
+					} elseif ($foundStringRoute) {
+						$configuredRoute[] = $foundStringRoute;
+						$this->httpObject->httpReqData['active']['routeParamArray'][$foundStringParamName] =
+							urldecode(
+								string: $element
+							);
+					} else {
+						throw new \Exception(
+							message: 'Route not supported',
+							code: HttpStatus::$BadRequest
+						);
+					}
+					$_element = $foundIntRoute ? $foundIntRoute : $foundStringRoute;
+					if (isset($routeConfig[$_element]['__PRE-ROUTE-HOOK__'])) {
+						$this->routeHook[$_element]['__PRE-ROUTE-HOOK__'] = $routeConfig[$_element]['__PRE-ROUTE-HOOK__'];
+					}
+					if (isset($routeConfig[$_element]['__POST-ROUTE-HOOK__'])) {
+						$this->routeHook[$_element]['__POST-ROUTE-HOOK__'] = $routeConfig[$_element]['__POST-ROUTE-HOOK__'];
+					}
+					$routeConfig = &$routeConfig[$_element];
+				} else {
+					throw new \Exception(
+						message: 'Route not supported',
+						code: HttpStatus::$BadRequest
+					);
+				}
+			}
+		}
+
+		$this->configuredRoute = '/' . implode(
+			separator: '/',
+			array: $configuredRoute
+		);
+		if (
+			in_array(
+				$this->httpObject->httpReqData['OUTPUT_REPRESENTATION'],
+				['XSLT', 'PHP', 'HTML']
+			)
+		) {
+			$outputRepresentationFile = $this->httpObject->httpReqData['server']['httpRequestMethod']
+				. DIRECTORY_SEPARATOR . str_replace(['{', '}'], ['', ''], $this->configuredRoute)
+				. '.' . strtolower($this->httpObject->httpReqData['OUTPUT_REPRESENTATION']);
+			$this->httpObject->response->encodeObject->outputRepresentationFile = $outputRepresentationFile;
+		}
+		$this->validateConfigFile(
+			routeConfig: $routeConfig
+		);
+	}
+
+	/**
+	 * Process Route Starting Keyword
+	 * 
+	 * @param string $routeStartingKeyword Route Starting Keyword
+	 * 
+	 * @return bool
+	 * @throws \Exception
+	 */
+	private function isStartingWithReservedRouteKeyword(
+		$routeStartingKeyword
+	) :bool {
+		$this->setReservedRouteArray(
+			routeStartingKeyword: $routeStartingKeyword
+		);
+		if (
+			is_array($this->reservedRoutesPrefix)
+			&& in_array(
+				needle: $routeStartingKeyword,
+				haystack: $this->reservedRoutesPrefix,
+				strict: Constant::$TRUE
+			)
+		) {
+			$this->routeStartingWithReservedKeywordFlag = Constant::$TRUE;
+			$this->routeStartingReservedKeyword = $routeStartingKeyword;
+			if ($this->httpObject->Env->ENABLE_CIDR) {
+				if (isset($this->reservedRoutesCidrString[$routeStartingKeyword])) {
+					CommonFunction::checkCidr(
+						ip: $this->httpObject->httpReqData['server']['httpRequestIp'],
+						cidrString: $this->reservedRoutesCidrString[$routeStartingKeyword]
+					);
+				}
+			}
+		}
+
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Process Route Ending Keyword
+	 * 
+	 * @param string $routeEndingKeyword Route Ending Keyword
+	 * 
+	 * @return bool
+	 */
+	private function isEndingWithReservedRouteKeyword(
+		$routeEndingKeyword
+	): bool {
+		$return = Constant::$FALSE;
+
+		if (
+			$this->httpObject->Env->ENABLE_EXPLAIN
+			&& $this->httpObject->Env->EXPLAIN_KEYWORD === $routeEndingKeyword
+		) {
+			$this->routeEndingWithReservedKeywordFlag = Constant::$TRUE;
+			$this->routeEndingReservedKeyword = $this->httpObject->Env->EXPLAIN_KEYWORD;
+			$return = Constant::$TRUE;
+		} elseif (
+			$this->httpObject->Env->ENABLE_IMPORT
+			&& $this->httpObject->Env->IMPORT_CSV_KEYWORD === $routeEndingKeyword
+		) {
+			$this->routeEndingWithReservedKeywordFlag = Constant::$TRUE;
+			$this->routeEndingReservedKeyword = $this->httpObject->Env->IMPORT_CSV_KEYWORD;
+			$return = Constant::$TRUE;
+		} elseif (
+			$this->httpObject->Env->ENABLE_IMPORT_SAMPLE
+			&& $this->httpObject->Env->IMPORT_SAMPLE_KEYWORD === $routeEndingKeyword
+		) {
+			$this->routeEndingWithReservedKeywordFlag = Constant::$TRUE;
+			$this->routeEndingReservedKeyword = $this->httpObject->Env->IMPORT_SAMPLE_KEYWORD;
+			$return = Constant::$TRUE;
+		}
+
+		return $return;
+	}
+
+	/**
+	 * Process Route Element
+	 * 
+	 * @param string $routeElement         Configured route element
+	 * @param string $element              Element
+	 * @param string $foundIntRoute        Found as int route element
+	 * @param string $foundIntParamName    Found as int param name
+	 * @param string $foundStringRoute     Found as String route element
+	 * @param string $foundStringParamName Found as String param name
+	 * 
+	 * @return bool
+	 * @throws \Exception
+	 */
+	private function processRouteElement(
+		$routeElement,
+		$dataType,
+		&$element,
+		&$foundIntRoute,
+		&$foundIntParamName,
+		&$foundStringRoute,
+		&$foundStringParamName
+	): bool {
+		// Is a dynamic URI element
+		if (
+			strpos(
+				haystack: $routeElement,
+				needle: '{'
+			) !== 0
+		) {
+			return Constant::$FALSE;
+		}
+
+		$dynamicRoute = trim(
+			string: $routeElement,
+			characters: '{}'
+		);
+		[
+			$paramName,
+			$paramDataType
+		] = explode(
+			separator: ':',
+			string: $dynamicRoute
+		);
+
+		if (
+			!in_array(
+				needle: $paramDataType,
+				haystack: ['int', 'string'],
+				strict: Constant::$TRUE
+			)
+		) {
+			throw new \Exception(
+				message: 'Invalid datatype set for Route',
+				code: HttpStatus::$InternalServerError
+			);
+		}
+
+		if (
+			$paramDataType === 'int'
+			&& ctype_digit(
+				text: $element
+			)
+		) {
+			$foundIntRoute = $routeElement;
+			$foundIntParamName = $paramName;
+			DatabaseServerDataType::validateDataType(
+				data: $element,
+				dataType: $dataType
+			);
+		}
+		if ($paramDataType === 'string') {
+			$foundStringRoute = $routeElement;
+			$foundStringParamName = $paramName;
+			DatabaseServerDataType::validateDataType(
+				data: $element,
+				dataType: $dataType
+			);
+		}
+
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Validate Sql config file
+	 * 
+	 * @param array $routeConfig Route config
+	 * 
+	 * @return void
+	 * @throws \Exception
+	 */
+	private function validateConfigFile(
+		&$routeConfig
+	): void {
+		// Set route code file
+		if (!isset($routeConfig['__FILE__'])) {
+			if (
+				count(
+					value: $routeConfig
+				) > 0
+			) {
+				throw new \Exception(
+					message: 'Route not supported',
+					code: HttpStatus::$BadRequest
+				);
+			}
+			if (
+				!(
+					$routeConfig['__FILE__'] === Constant::$FALSE
+					|| file_exists(
+						filename: $routeConfig['__FILE__']
+					)
+				)
+			) {
+				throw new \Exception(
+					message: 'Missing config for HTTP ' . $this->httpObject->httpReqData['server']['httpRequestMethod'] . ' method',
+					code: HttpStatus::$InternalServerError
+				);
+			}
+		}
+
+		if (
+			!empty($routeConfig['__FILE__'])
+			&& file_exists(
+				filename: $routeConfig['__FILE__']
+			)
+		) {
+			$Constant = __NAMESPACE__ . '\Constant';
+			$Env = __NAMESPACE__ . '\Env';
+
+			// Output data representation over rides global
+			// Output data representation set in Query config file
+			$this->httpObject->httpReqData['active']['sqlData']['Config'] = include $routeConfig['__FILE__'];
+		}
+	}
+
+	/**
+	 * Check presence of Dynamic String in URL same as configured in Route file.
+	 * 
+	 * @param string $element Route element
+	 * 
+	 * @return void
+	 */
+	private function checkPresenceOfDynamicString(
+		$element
+	): void {
+		if (
+			strpos(
+				haystack: $element,
+				needle: '{'
+			) === 0
+		) {
+			$param = substr(
+				string: $element,
+				offset: 1,
+				length: strpos(
+					haystack: $element,
+					needle: ':'
+				) - 1
+			);
+			$this->httpObject->httpReqData['active']['routeParamArray'][$param] = $element;
+		}
+	}
+
+	/**
+	 * Find Ruute and Param Name from Dynamic String configured in Route file.
+	 * 
+	 * @param array  $routeConfig Route config
+	 * @param string $element     Route element
+	 * 
+	 * @return array
+	 */
+	private function findRouteAndParamName(
+		&$routeConfig,
+		&$element
+	): array {
+		$foundIntRoute = Constant::$FALSE;
+		$foundIntParamName = Constant::$FALSE;
+		$foundStringRoute = Constant::$FALSE;
+		$foundStringParamName = Constant::$FALSE;
+		foreach (
+			array_keys(
+				array: $routeConfig
+			) as $routeElement
+		) {
+			if (
+				in_array(
+					needle: $routeElement,
+					haystack: ['dataType'],
+					strict: Constant::$TRUE
+				)
+			) {
+				continue;
+			}
+			if (
+				strpos(
+					haystack: $routeElement,
+					needle: '{'
+				) === 0
+				&& isset($routeConfig[$routeElement]['dataType'])
+			) {
+				$dataType = $routeConfig[$routeElement]['dataType'];
+				// Is a dynamic URI element
+				$this->processRouteElement(
+					routeElement: $routeElement,
+					dataType: $dataType,
+					element: $element,
+					foundIntRoute: $foundIntRoute,
+					foundIntParamName: $foundIntParamName,
+					foundStringRoute: $foundStringRoute,
+					foundStringParamName: $foundStringParamName
+				);
+			}
+		}
+
+		return [
+			$foundIntRoute,
+			$foundIntParamName,
+			$foundStringRoute,
+			$foundStringParamName
+		];
+	}
+
+	/**
+	 * Set Reserved Route
+	 * 
+	 * @param string $routeStartingKeyword Route starting keyword
+	 * 
+	 * @return void
+	 */
+	private function setReservedRouteArray(
+		$routeStartingKeyword
+	): void {
+		switch ($routeStartingKeyword) {
+			case $this->httpObject->Env->CRON_KEYWORD:
+				$this->reservedRoutesPrefix[] = $this->httpObject->Env->CRON_KEYWORD;
+				$this->reservedRoutesCidrString[$this->httpObject->Env->CRON_KEYWORD] = $this->httpObject->httpReqData['active']['customerData']['customer_cron_cidr'];
+				break;
+			case $this->httpObject->Env->CUSTOM_KEYWORD:
+				$this->reservedRoutesPrefix[] = $this->httpObject->Env->CUSTOM_KEYWORD;
+				$this->reservedRoutesCidrString[$this->httpObject->Env->CUSTOM_KEYWORD] = $this->httpObject->httpReqData['active']['customerData']['customer_custom_cidr'];
+				break;
+			case $this->httpObject->Env->THIRDPARTY_KEYWORD:
+				$this->reservedRoutesPrefix[] = $this->httpObject->Env->THIRDPARTY_KEYWORD;
+				$this->reservedRoutesCidrString[$this->httpObject->Env->THIRDPARTY_KEYWORD] = $this->httpObject->httpReqData['active']['customerData']['customer_thirdparty_cidr'];
+				break;
+			case $this->httpObject->Env->UPLOAD_KEYWORD:
+				$this->reservedRoutesPrefix[] = $this->httpObject->Env->UPLOAD_KEYWORD;
+				$this->reservedRoutesCidrString[$this->httpObject->Env->UPLOAD_KEYWORD] = $this->httpObject->httpReqData['active']['customerData']['customer_upload_cidr'];
+				break;
+		}
+	}
+}

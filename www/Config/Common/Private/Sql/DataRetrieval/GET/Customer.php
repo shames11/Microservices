@@ -1,0 +1,71 @@
+<?php
+namespace Microservices\www\Config\Common\Private\Sql\DataRetrieval\GET;
+
+/**
+ * API Query config
+ * php version 8.3
+ *
+ * @category  API_Query_Config
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+use Microservices\App\Constant;
+use Microservices\App\DatabaseServerDataType;
+use Microservices\App\Env;
+use Microservices\DatabaseTable;
+
+return [
+	'all' => [
+		'__COUNT-SQL__' => "SELECT count(1) as `count` FROM `{$Env::$SYSTEM_CUSTOMER_TABLE}` WHERE __WHERE__",
+		'__SQL__' => "SELECT * FROM `{$Env::$SYSTEM_CUSTOMER_TABLE}` WHERE __WHERE__ ORDER BY id ASC",
+		'__WHERE__' => [
+			[
+				'column' => 'is_approved',
+				'activeDataKey' => 'custom',
+				'activeDataKeySubKey' => Constant::$YES
+			],
+			[
+				'column' => 'is_disabled',
+				'activeDataKey' => 'custom',
+				'activeDataKeySubKey' => Constant::$NO
+			],
+			[
+				'column' => 'is_deleted',
+				'activeDataKey' => 'custom',
+				'activeDataKeySubKey' => Constant::$NO
+			]
+		],
+		'__MODE__' => 'multipleRecordFormat'
+	],
+	'single' => [
+		'__SQL__' => "SELECT * FROM `{$Env::$SYSTEM_CUSTOMER_TABLE}` WHERE __WHERE__",
+		'__WHERE__' => [
+			[
+				'column' => 'is_approved',
+				'activeDataKey' => 'custom',
+				'activeDataKeySubKey' => Constant::$YES
+			],
+			[
+				'column' => 'is_disabled',
+				'activeDataKey' => 'custom',
+				'activeDataKeySubKey' => Constant::$NO
+			],
+			[
+				'column' => 'is_deleted',
+				'activeDataKey' => 'custom',
+				'activeDataKeySubKey' => Constant::$NO
+			],
+			[
+				'column' => DatabaseTable::$customerPrimaryKey,
+				'activeDataKey' => 'routeParamArray',
+				'activeDataKeySubKey' => 'id'
+			]
+		],
+		'__MODE__' => 'singleRecordFormat'
+	],
+][isset($this->httpObject->httpReqData['active']['routeParamArray']['id'])?'single':'all'];

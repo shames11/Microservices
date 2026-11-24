@@ -1,0 +1,132 @@
+<?php
+
+/**
+ * ThirdPartyAPI
+ * php version 8.3
+ *
+ * @category  ThirdPartyAPI_Interface
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\www\Supplement\ThirdParty;
+
+use Microservices\App\CommonFunction;
+use Microservices\App\Constant;
+use Microservices\App\Http;
+use Microservices\App\HttpStatus;
+use Microservices\www\Supplement\ThirdParty\ThirdPartyInterface;
+use Microservices\www\Supplement\ThirdParty\ThirdPartyTrait;
+
+/**
+ * ThirdPartyAPI Example
+ * php version 8.3
+ *
+ * @category  ThirdPartyAPI_Example
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+class Google implements ThirdPartyInterface
+{
+	use ThirdPartyTrait;
+
+	/**
+	 * HTTP object
+	 * 
+	 * @var null|Http
+	 */
+	private $httpObject = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param Http $httpObject
+	 */
+	public function __construct(
+		Http &$httpObject
+	) {
+		$this->httpObject = &$httpObject;
+	}
+
+	/**
+	 * Initialize
+	 * 
+	 * @return bool
+	 */
+	public function init(): bool
+	{
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Process
+	 * 
+	 * @return mixed
+	 */
+	public function process(): mixed
+	{
+		// Create and call functions to manage third party cURL calls here
+
+		$curl_handle = curl_init();
+		curl_setopt(
+			handle: $curl_handle,
+			option: \CURLOPT_URL,
+			value: 'https://api.ipify.org?format=json'
+		);
+		curl_setopt(
+			handle: $curl_handle,
+			option: \CURLOPT_CONNECTTIMEOUT,
+			value: 2
+		);
+		curl_setopt(
+			handle: $curl_handle,
+			option: \CURLOPT_RETURNTRANSFER,
+			value: 1
+		);
+		$output = curl_exec(
+			handle: $curl_handle
+		);
+		curl_close(
+			handle: $curl_handle
+		);
+		if (empty($output)) {
+			$output = ['Error' => 'Nothing returned by ipify'];
+			$this->httpObject->response->httpStatus = HttpStatus::$InternalServerError;
+		} else {
+			$output = CommonFunction::jsonDecode(
+				value: $output
+			);
+		}
+		// End the calls with json response with encodeObject object
+		$this->endProcess(
+			output: $output
+		);
+
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Function to end process which outputs the results
+	 * 
+	 * @param string $output Output
+	 * 
+	 * @return void
+	 */
+	private function endProcess(
+		$output
+	): void {
+		$this->httpObject->response->encodeObject->addKeyData(
+			objectKey: 'Results',
+			data: $output
+		);
+	}
+}

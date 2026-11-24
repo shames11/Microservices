@@ -1,0 +1,254 @@
+<?php
+
+/**
+ * Handling Cache via Redis
+ * php version 8.3
+ *
+ * @category  Cache
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\App\Server\CacheServer;
+
+use Microservices\App\Constant;
+use Microservices\App\HttpStatus;
+use Microservices\App\Server\CacheServer\CacheServerInterface;
+use Microservices\App\Server\Container\NoSql\Redis as Cache_Redis;
+
+/**
+ * Caching via Redis
+ * php version 8.3
+ *
+ * @category  Cache_Redis
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class RedisCache implements CacheServerInterface
+{
+	/**
+	 * Cache Server Hostname
+	 * 
+	 * @var null|string
+	 */
+	private $cacheServerHost = null;
+
+	/**
+	 * Cache Server Port
+	 * 
+	 * @var null|int
+	 */
+	private $cacheServerPort = null;
+
+	/**
+	 * Cache Server Username
+	 * 
+	 * @var null|string
+	 */
+	private $cacheServerUser = null;
+
+	/**
+	 * Cache Server Password
+	 * 
+	 * @var null|string
+	 */
+	private $cacheServerPassword = null;
+
+	/**
+	 * Cache Server DB
+	 * 
+	 * @var null|string
+	 */
+	private $cacheServerDb = null;
+
+	/**
+	 * Cache collection
+	 * 
+	 * @var null|string
+	 */
+	public $cacheServerTable = null;
+
+	/**
+	 * Cache Server Object
+	 * 
+	 * @var null|Cache_Redis
+	 */
+	private $noSqlObject = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param string      $cacheServerHost Cache Server Hostname
+	 * @param int         $cacheServerPort     Cache Server Port
+	 * @param string      $cacheServerUser Cache Server Username
+	 * @param string      $cacheServerPassword Cache Server Password
+	 * @param null|string $cacheServerDb Cache Server Database
+	 * @param null|string $cacheServerTable    Cache Server Table
+	 */
+	public function __construct(
+		$cacheServerHost,
+		$cacheServerPort,
+		$cacheServerUser,
+		$cacheServerPassword,
+		$cacheServerDb,
+		$cacheServerTable
+	) {
+		$this->cacheServerHost = $cacheServerHost;
+		$this->cacheServerPort = $cacheServerPort;
+		$this->cacheServerUser = $cacheServerUser;
+		$this->cacheServerPassword = $cacheServerPassword;
+		$this->cacheServerDb = $cacheServerDb;
+		$this->cacheServerTable = $cacheServerTable;
+	}
+
+	/**
+	 * Cache Server Object
+	 * 
+	 * @return void
+	 * @throws \Exception
+	 */
+	public function connectCache(): void
+	{
+		if ($this->noSqlObject !== Constant::$NULL) {
+			return;
+		}
+
+		try {
+			$this->noSqlObject = new Cache_Redis(
+				cacheServerHost: $this->cacheServerHost,
+				cacheServerPort: $this->cacheServerPort,
+				cacheServerUser: $this->cacheServerUser,
+				cacheServerPassword: $this->cacheServerPassword,
+				cacheServerDb: $this->cacheServerDb,
+				cacheServerTable: $this->cacheServerTable
+			);
+		} catch (\Exception $e) {
+			throw new \Exception(
+				message: $e->getMessage(),
+				code: HttpStatus::$InternalServerError
+			);
+		}
+	}
+
+	/**
+	 * Cache key exist
+	 * 
+	 * @param string $cacheKey Cache key
+	 * 
+	 * @return mixed
+	 */
+	public function cacheExist(
+		$cacheKey
+	): mixed {
+		$this->connectCache();
+
+		if (empty($cacheKey)) {
+			return Constant::$FALSE;
+		}
+
+		return $this->noSqlObject->exist(
+			key: $cacheKey
+		);
+	}
+
+	/**
+	 * Get cache key
+	 * 
+	 * @param string $cacheKey Cache key
+	 * 
+	 * @return mixed
+	 */
+	public function cacheGet(
+		$cacheKey
+	): mixed {
+		$this->connectCache();
+
+		if (empty($cacheKey)) {
+			return Constant::$FALSE;
+		}
+
+		return $this->noSqlObject->get(
+			key: $cacheKey
+		);
+	}
+
+	/**
+	 * Set cache key
+	 * 
+	 * @param string $cacheKey    Cache key
+	 * @param mixed  $cacheValue  Cache value
+	 * @param int    $cacheExpire Seconds to expire. Default 0 - doesn't expire
+	 * 
+	 * @return mixed
+	 */
+	public function cacheSet(
+		$cacheKey,
+		$cacheValue,
+		$cacheExpire = null
+	): mixed {
+		$this->connectCache();
+
+		if (empty($cacheKey)) {
+			return Constant::$FALSE;
+		}
+
+		return $this->noSqlObject->set(
+			key: $cacheKey,
+			value: $cacheValue,
+			expire: $cacheExpire
+		);
+	}
+
+	/**
+	 * Increment cache key with offset
+	 * 
+	 * @param string $cacheKey    Cache key
+	 * @param int    $cacheOffset Offset
+	 * 
+	 * @return mixed
+	 */
+	public function cacheIncrement(
+		$cacheKey,
+		$cacheOffset = 1
+	): mixed {
+		$this->connectCache();
+
+		if (empty($cacheKey)) {
+			return Constant::$FALSE;
+		}
+
+		return $this->noSqlObject->increment(
+			key: $cacheKey,
+			offset: $cacheOffset
+		);
+	}
+
+	/**
+	 * Delete cache key
+	 * 
+	 * @param string $cacheKey Cache key
+	 * 
+	 * @return mixed
+	 */
+	public function cacheDelete(
+		$cacheKey
+	): mixed {
+		$this->connectCache();
+
+		if (empty($cacheKey)) {
+			return Constant::$FALSE;
+		}
+
+		return $this->noSqlObject->delete(
+			key: $cacheKey
+		);
+	}
+}

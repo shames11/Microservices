@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * ThirdPartyAPI
+ * php version 8.3
+ *
+ * @category  ThirdPartyAPI_Interface
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\www\Supplement\ThirdParty;
+
+/**
+ * ThirdPartyAPI Interface
+ * php version 8.3
+ *
+ * @category  ThirdPartyAPI_Interface
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+interface ThirdPartyInterface
+{
+	/**
+	 * Initialize
+	 * 
+	 * @return bool
+	 */
+	public function init(): bool;
+
+	/**
+	 * Process
+	 * 
+	 * @return mixed
+	 */
+	public function process(): mixed;
+}

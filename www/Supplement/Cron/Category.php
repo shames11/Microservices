@@ -1,0 +1,82 @@
+<?php
+
+/**
+ * CronAPI
+ * php version 8.3
+ *
+ * @category  CronAPI_Trait
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\www\Supplement\Cron;
+
+use Microservices\App\Constant;
+use Microservices\App\Http;
+use Microservices\App\HttpStatus;
+use Microservices\www\Supplement\Cron\CronInterface;
+use Microservices\www\Supplement\Cron\CronTrait;
+
+/**
+ * CronAPI
+ * php version 8.3
+ *
+ * @category  CronAPI_Example
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class Category implements CronInterface
+{
+	use CronTrait;
+
+	/**
+	 * HTTP object
+	 * 
+	 * @var null|Http
+	 */
+	private $httpObject = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param Http $httpObject
+	 */
+	public function __construct(
+		Http &$httpObject
+	) {
+		$this->httpObject = &$httpObject;
+	}
+
+	/**
+	 * Initialize
+	 * 
+	 * @return bool
+	 */
+	public function init(): bool
+	{
+		return Constant::$TRUE;
+	}
+
+	/**
+	 * Process
+	 * 
+	 * @return mixed
+	 */
+	public function process(): mixed
+	{
+		throw new \Exception(
+			message: 'message as desired',
+			code: HttpStatus::$Ok
+		);
+
+		return Constant::$TRUE;
+	}
+}

@@ -1,0 +1,147 @@
+<?php
+
+/**
+ * Validator
+ * php version 8.3
+ *
+ * @category  Validator
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\www\Validation;
+
+use Microservices\App\Constant;
+use Microservices\App\Http;
+use Microservices\www\Validation\ValidatorInterface;
+use Microservices\www\Validation\ValidatorTrait;
+
+/**
+ * Customer Validator
+ * php version 8.3
+ *
+ * @category  Validator_Customer
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class CustomerValidator implements ValidatorInterface
+{
+	use ValidatorTrait;
+
+	/**
+	 * HTTP object
+	 * 
+	 * @var null|Http
+	 */
+	private $httpObject = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param Http $httpObject
+	 */
+	public function __construct(
+		Http &$httpObject
+	) {
+		$this->httpObject = &$httpObject;
+	}
+
+	/**
+	 * Validate payload
+	 * 
+	 * @param array $validationConfig Validation configuration
+	 * 
+	 * @return array
+	 */
+	public function validate(
+		&$validationConfig
+	): array {
+		$isValidData = Constant::$TRUE;
+		$errorArray = [];
+		foreach ($validationConfig as &$v) {
+			$argArray = [];
+			foreach (
+				$v['functionArgs'] as $argName => [
+					$activeDataKey,
+					$activeDataKeySubKey
+				]
+			) {
+				if ($activeDataKey === 'custom') {
+					$argArray[$argName] = $activeDataKeySubKey;
+				} else {
+					$argArray[$argName] = $this->httpObject->httpReqData['active'][$activeDataKey][$activeDataKeySubKey];
+				}
+			}
+			$function = $v['function'];
+			if (!$this->$function($argArray)) {
+				$errorArray[] = $v['errorMessage'];
+				$isValidData = Constant::$FALSE;
+			}
+		}
+
+		return [
+			$isValidData,
+			$errorArray
+		];
+	}
+
+	/**
+	 * Get primary key count
+	 * 
+	 * @param string $table   Table Name
+	 * @param string $primary Primary Key
+	 * @param int    $id      Primary id
+	 * 
+	 * @return int 0/1
+	 */
+	private function getPrimaryCount(
+		&$table,
+		$primary,
+		&$id
+	): int {
+		$dbServerDb = $this->httpObject->db->dbServerDb;
+		$sql = "
+			SELECT count(1) as `count`
+			FROM `{$dbServerDb}`.`{$table}`
+			WHERE `{$primary}` = ?
+		";
+		$paramArray = [$id];
+		$this->httpObject->db->execQuery(
+			sql: $sql,
+			paramArray: $paramArray
+		);
+		return (int)($this->httpObject->db->fetch())['count'];
+	}
+
+	/**
+	 * Check primary key exist
+	 * 
+	 * @param array $argArray Arguments
+	 * 
+	 * @return bool
+	 */
+	private function primaryKeyExist(
+		&$argArray
+	): bool {
+		extract(
+			array: $argArray
+		);
+		$sql = "SELECT count(1) as `count` FROM `{$table}` WHERE `{$primary}` = ?";
+		$paramArray = [$id];
+		$this->httpObject->db->execQuery(
+			sql: $sql,
+			paramArray: $paramArray
+		);
+		$record = $this->httpObject->db->fetch();
+		$this->httpObject->db->closeCursor();
+		return (isset($record['count']) && $record['count'] === 0) ? Constant::$FALSE : Constant::$TRUE;
+	}
+}

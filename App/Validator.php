@@ -1,0 +1,140 @@
+<?php
+
+/**
+ * Validator
+ * php version 8.3
+ *
+ * @category  Validator
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+
+namespace Microservices\App;
+
+use Microservices\App\Constant;
+use Microservices\App\Env;
+use Microservices\App\Http;
+use Microservices\www\Validation\CustomerValidator;
+use Microservices\www\Validation\GlobalValidator;
+use Microservices\www\Validation\ValidatorInterface;
+
+/**
+ * Validator
+ * php version 8.3
+ *
+ * @category  Validator
+ * @package   Microservices
+ * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
+ * @copyright © 2026 Ramesh N. Jangid (Sharma)
+ * @license   MIT https://opensource.org/license/mit
+ * @link      https://github.com/polygoncoin/Microservices
+ * @since     Class available since Release 1.0.0
+ */
+class Validator
+{
+	/**
+	 * Validator object
+	 * 
+	 * @var null|ValidatorInterface
+	 */
+	private $validatorObject = null;
+
+	/**
+	 * HTTP object
+	 * 
+	 * @var null|Http
+	 */
+	private $httpObject = null;
+
+	/**
+	 * Constructor
+	 * 
+	 * @param Http $httpObject
+	 */
+	public function __construct(
+		Http &$httpObject
+	) {
+		$this->httpObject = &$httpObject;
+		if ($this->httpObject->db->dbServerDb === $this->httpObject->Env->DB_NAME) {
+			$this->validatorObject = new GlobalValidator(
+				httpObject: $this->httpObject
+			);
+		} else {
+			$this->validatorObject = new CustomerValidator(
+				httpObject: $this->httpObject
+			);
+		}
+	}
+
+	/**
+	 * Validate payload
+	 * 
+	 * @param array $validationConfig Validation configuration
+	 * 
+	 * @return array
+	 */
+	public function validate(
+		&$validationConfig
+	): array {
+		if (
+			isset(($this->httpObject->httpReqData['active']['requiredFieldArray']))
+			&& count(
+				value: $this->httpObject->httpReqData['active']['requiredFieldArray']
+			) > 0
+		) {
+			if (
+				(
+					[
+						$isValidData,
+						$errorArray
+					] = $this->validateRequired()
+				)
+				&& !$isValidData
+			) {
+				return [
+					$isValidData,
+					$errorArray
+				];
+			}
+		}
+
+		return $this->validatorObject->validate(
+			validationConfig: $validationConfig
+		);
+	}
+
+	/**
+	 * Validate required payload
+	 * 
+	 * @return array
+	 */
+	private function validateRequired(): array
+	{
+		$isValidData = Constant::$TRUE;
+		$errorArray = [];
+		// Required fields payload validation
+		if (!empty($this->httpObject->httpReqData['active']['requiredFieldArray']['payload'])) {
+			foreach ($this->httpObject->httpReqData['active']['requiredFieldArray']['payload'] as $activeDataKeySubKey) {
+				if (
+					!in_array(
+						needle: $activeDataKeySubKey,
+						haystack: $this->httpObject->httpReqData['active']['payload'],
+						strict: Constant::$TRUE
+					)
+				) {
+					$errorArray[] = 'Missing required payload: ' . $activeDataKeySubKey;
+					$isValidData = Constant::$FALSE;
+				}
+			}
+		}
+
+		return [
+			$isValidData,
+			$errorArray
+		];
+	}
+}
