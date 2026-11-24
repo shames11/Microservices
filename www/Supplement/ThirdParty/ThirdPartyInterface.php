@@ -9,7 +9,7 @@
  * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
  * @copyright © 2026 Ramesh N. Jangid (Sharma)
  * @license   MIT https://opensource.org/license/mit
- * @link      https://github.com/polygoncoin/Microservices
+ * @link      https://github.com/shames11/Microservices
  * @since     Class available since Release 1.0.0
  */
 
@@ -24,7 +24,7 @@ namespace Microservices\www\Supplement\ThirdParty;
  * @author    Ramesh N. Jangid (Sharma) <polygon.co.in@gmail.com>
  * @copyright © 2026 Ramesh N. Jangid (Sharma)
  * @license   MIT https://opensource.org/license/mit
- * @link      https://github.com/polygoncoin/Microservices
+ * @link      https://github.com/shames11/Microservices
  * @since     Class available since Release 1.0.0
  */
 interface ThirdPartyInterface

@@ -105,7 +105,7 @@ When these data types are configured for a param in route or Sql config payload;
 ## Contributing
 
 Issues and feature request are welcome.<br />
-Feel free to share them on [issues page](https://github.com/polygoncoin/Microservices/issues)
+Feel free to share them on [issues page](https://github.com/shames11/Microservices/issues)
 
 ## Author
 

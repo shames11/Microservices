@@ -151,7 +151,7 @@ IMPORT_SAMPLE_KEYWORD='import-sample'
 ## Contributing
 
 Issues and feature request are welcome.<br />
-Feel free to share them on [issues page](https://github.com/polygoncoin/Microservices/issues)
+Feel free to share them on [issues page](https://github.com/shames11/Microservices/issues)
 
 ## Author
 
